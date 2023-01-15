@@ -1,21 +1,31 @@
-# HandGesture-Project
-Hand Gestures
-This template allows you to trigger different effects based on recognized hand gestures. The template uses Hand Gestures to show a stylized picture of a recognized gesture, as well as triggering a sound effect. It provides an easy way to interact with the following gestures (each gesture is seen in the image below):
+import cv2
+import mediapipe as mp
+mp_drawing = mp.solutions.drawing_utils
+mp_hands = mp.solutions.hands
 
-Template Walkthrough
-Let’s take a high level overview of the project. It can be split into three major parts: 
+cap = cv2.VideoCapture(0)
+with mp_hands.Hands(
+    min_detection_confidence=0.5,
+    min_tracking_confidence=0.5) as hands:
+  while cap.isOpened():
+    success, image = cap.read()
 
-Hand Tracking
-Gesture Detection and Emitting Events
-Responding to the Events and Triggering Effects
-The Hand Tracking part is managed by the Object Tracking component, which is attached to the Orthographic Camera > Hand Tracking Region > Hand Tracking > Hand Center. In addition to tracking the hand, this component can also look for hand gestures.
+    if not success:
+      print("Ignoring empty camera frame.")
+      # If loading a video, use 'break' instead of 'continue'.
+      continue
+    image = cv2.cvtColor(cv2.flip(image, 1), cv2.COLOR_BGR2RGB)
 
-NOTE
-
-Emitting events is handled by the Hand Gesture Controller object. If you select this object, you can see, in the Inspector panel, that it takes an Object Tracking component and a list of Behavior triggers to emit for each of the recognizable gestures. So that every time the Object Tracking component detects a hand gesture, this script emits the given list of triggers.
-
-T
-We can use the Behavior script to respond to the hand gestures events. This template provides two examples of using the Behavior script to respond to detection of a hand gesture:
-
-Instantiating prefabs
-Playing sounds
+    image.flags.writeable = False
+    results = hands.process(image)
+    # Draw the hand annotations on the image.
+    image.flags.writeable = True
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+    if results.multi_hand_landmarks:
+      for hand_landmarks in results.multi_hand_landmarks:
+        mp_drawing.draw_landmarks(
+            image, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+    cv2.imshow('MediaPipe Hands', image)
+    if cv2.waitKey(5) & 0xFF == 27:
+      break
+cap.release()
